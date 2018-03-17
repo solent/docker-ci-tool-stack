@@ -1,4 +1,4 @@
-version: '3'
+version: '3.5'
 
 networks:
   prodnetwork:
@@ -9,15 +9,6 @@ volumes:
   jenkins-data:
 
 services:
-  nexus:
-    build: ./docker-nexus3
-    restart: always
-    ports:
-      - "18081:8081"
-    networks:
-      - prodnetwork
-    volumes:
-      - nexus-data:/nexus-data
   jenkins:
     build: ./jenkins
     restart: always
@@ -30,10 +21,8 @@ services:
       - /usr/bin/docker:/usr/bin/docker
       - jenkins-data:/var/lib/jenkins/
     depends_on:
-      - nexus
       - sonar
     environment:
-      - NEXUS_PORT=8081
       - SONAR_PORT=9000
       - SONAR_DB_PORT=5432
   sonardb:
@@ -60,24 +49,21 @@ services:
      - SONARQUBE_JDBC_URL=jdbc:postgresql://sonardb:5432/sonar
      - SONARQUBE_JDBC_USERNAME=sonar
      - SONARQUBE_JDBC_PASSWORD=sonar
-
-##########################################################################################
-# DISABLED: GitLab takes too much memory and CPU. Demo uses GitHub repositories instead.
-#
-#  gitlab:
-#    image: gitlab/gitlab-ce:latest
-#    restart: always
-#    networks:
-#      - prodnetwork
-#    environment:
-#      GITLAB_OMNIBUS_CONFIG: |
-#        # external_url 'https://gitlab.example.com'
-#        # Add any other gitlab.rb configuration here, each on its own line
-#    ports:
-#      - "10080:80"
-#      - "10443:443"
-#      - "10022:22"
-#    volumes:
-#      - /opt/gitlab/config:/etc/gitlab
-#      - /opt/gitlab/logs:/var/log/gitlab
-#      - /opt/gitlab/data:/var/opt/gitlab
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    restart: always
+    hostname: 'localhost'
+    networks:
+      - prodnetwork
+    environment:
+#https://gitlab.com/gitlab-org/omnibus-gitlab/issues/2299
+      GITLAB_OMNIBUS_CONFIG: |
+         external_url 'http://localhost:19690'
+         nginx['redirect_http_to_https'] = false
+    ports:
+      - '19690:19690'
+      - "10080:80"
+    volumes:
+      - /opt/gitlab/config:/etc/gitlab
+      - /opt/gitlab/logs:/var/log/gitlab
+      - /opt/gitlab/data:/var/opt/gitlab
